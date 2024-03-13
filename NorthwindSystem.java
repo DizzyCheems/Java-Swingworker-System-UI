@@ -21,7 +21,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.awt.Font;
 
-
+//<!--BUILT BY Justine Favia-->
 public class NorthwindProjectSystem extends javax.swing.JFrame {
 
     ResultSet rs;
@@ -391,8 +391,8 @@ private void updateTable2(String selectedOrderId) {
                         "Product ID", "Unit Price", "Quantity", "% Discount", "Amount", "Discount", "Discounted Value"
                 }
         ));
+        jScrollPane1.getViewport().setBackground(new Color(33, 36, 106));
         jScrollPane1.setViewportView(tblSales2);
-
         jLabel2.setText("Customer ID");
 
         jLabel3.setText("Company Name");
@@ -415,7 +415,8 @@ private void updateTable2(String selectedOrderId) {
                         "OrderID", "Order Date", "Ship Country", "Ship City"
                 }
         ));
-        jScrollPane2.setViewportView(tblSales1);
+         jScrollPane2.getViewport().setBackground(new Color(33, 36, 106));
+         jScrollPane2.setViewportView(tblSales1);
 
         jLabel1.setFont(new Font("Arial", Font.PLAIN, 14));
         jLabel6.setFont(new Font("Arial", Font.PLAIN, 14));
