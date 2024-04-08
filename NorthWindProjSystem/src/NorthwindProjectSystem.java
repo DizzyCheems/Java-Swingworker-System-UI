@@ -20,7 +20,19 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.awt.Font;
-
+import javax.swing.JButton; // Import the JButton class
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JFrame;
+import java.awt.GridLayout;
+import javax.swing.JTextField;
+import javax.swing.JComboBox;
+import java.util.HashMap;
+import java.awt.Dimension;
+import javax.swing.Box; // Import Box class
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 //<!--BUILT BY Justine Favia-->
 public class NorthwindProjectSystem extends javax.swing.JFrame {
 
@@ -217,14 +229,27 @@ private int updateTable1(String selectedContactName) {
             rowData.add(resultSet.getString(14)); 
             rowData.add(resultSet.getString(11)); 
             tableModel.addRow(rowData);
+            //Insert Delete Button Here 
             rowCount++; // Increment the row count
         }
+
+        // Clear the displayed data in jTextField5, jTextField6, jTextField7, and tblSales2
+        clearDisplayedData();
+
     } catch (Exception e) {
         JOptionPane.showMessageDialog(null, e.toString());
     }
     return rowCount; 
 }
 
+private void clearDisplayedData() {
+    jTextField5.setText("");
+    jTextField6.setText("");
+    jTextField7.setText("");
+    jLabel6.setText("...");
+    DefaultTableModel tableModel = (DefaultTableModel) tblSales2.getModel();
+    tableModel.setRowCount(0);
+}
 
 private String formatDate(String date) {
     
@@ -412,7 +437,7 @@ private void updateTable2(String selectedOrderId) {
 
                 },
                 new String [] {
-                        "OrderID", "Order Date", "Ship Country", "Ship City"
+                        "OrderID", "Order Date", "Ship Country", "Ship City", "Action"
                 }
         ));
          jScrollPane2.getViewport().setBackground(new Color(33, 36, 106));
@@ -425,6 +450,293 @@ private void updateTable2(String selectedOrderId) {
     jTextField5.setFont(jTextField5.getFont().deriveFont(16f));
     jTextField6.setFont(jTextField6.getFont().deriveFont(16f));
     jTextField7.setFont(jTextField7.getFont().deriveFont(16f));
+
+
+
+JButton btnAddProduct = new JButton("Add Product");
+btnAddProduct.addActionListener(new ActionListener() {
+    public void actionPerformed(ActionEvent e) {
+        // Create an instance of your new JPanel with GridBagLayout
+        JPanel addProductPanel = new JPanel(new GridBagLayout());
+
+        // Create GridBagConstraints for label alignment on the left
+        GridBagConstraints gbcLeft = new GridBagConstraints();
+        gbcLeft.anchor = GridBagConstraints.WEST;
+        gbcLeft.gridx = 0;
+        gbcLeft.gridy = GridBagConstraints.RELATIVE; // Start at the current row and move down
+        gbcLeft.insets = new Insets(5, 5, 5, 5); // Add insets for spacing
+
+        // Create GridBagConstraints for text field alignment on the right
+        GridBagConstraints gbcRight = new GridBagConstraints();
+        gbcRight.anchor = GridBagConstraints.WEST;
+        gbcRight.gridx = 1;
+        gbcRight.gridy = GridBagConstraints.RELATIVE; // Start at the current row and move down
+        gbcRight.weightx = 1.0; // Allow text fields to expand horizontally
+        gbcRight.insets = new Insets(5, 5, 5, 5); // Add insets for spacing
+
+        // Add JLabels for the fields
+        JLabel lblProduct = new JLabel("Product");
+        JLabel lblQuantity = new JLabel("Quantity");
+        JLabel lblDiscount = new JLabel("Discount");
+        JLabel lblUnitPrice = new JLabel("Unit Price");
+
+        // Fetch product names from the database
+        JComboBox<String> cmbProductName = new JComboBox<>();
+        HashMap<String, Double> productPrices = new HashMap<>(); // Use HashMap instead of Map
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver"); // Use the new MySQL driver class
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/northwind", "root", "");
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT productName, unitPrice FROM product");
+            while (rs.next()) {
+                String productName = rs.getString("productName");
+                double unitPrice = rs.getDouble("unitPrice");
+                cmbProductName.addItem(productName);
+                productPrices.put(productName, unitPrice); // Store product prices in the map
+            }
+            rs.close();
+            stmt.close();
+            conn.close();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        // Add JTextFields for input
+        JTextField txtQuantity = new JTextField();
+        JTextField txtDiscount = new JTextField();
+        JTextField txtUnitPrice = new JTextField();
+
+        // Set preferred size for text fields (adjust as needed)
+        txtQuantity.setPreferredSize(new Dimension(200, 25));
+        txtDiscount.setPreferredSize(new Dimension(200, 25));
+        txtUnitPrice.setPreferredSize(new Dimension(200, 25));
+
+        // Add ActionListener to update unit price when product is selected
+        cmbProductName.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String selectedProductName = cmbProductName.getSelectedItem().toString();
+                if (productPrices.containsKey(selectedProductName)) {
+                    double unitPrice = productPrices.get(selectedProductName);
+                    txtUnitPrice.setText(String.valueOf(unitPrice)); // Update the unit price field
+                }
+            }
+        });
+
+        // Add components to the panel with GridBagConstraints
+        addProductPanel.add(lblProduct, gbcLeft);
+        addProductPanel.add(cmbProductName, gbcRight);
+        addProductPanel.add(lblQuantity, gbcLeft);
+        addProductPanel.add(txtQuantity, gbcRight);
+        addProductPanel.add(lblDiscount, gbcLeft);
+        addProductPanel.add(txtDiscount, gbcRight);
+        addProductPanel.add(lblUnitPrice, gbcLeft);
+        addProductPanel.add(txtUnitPrice, gbcRight);
+
+        // Add an empty component for spacing between rows
+        GridBagConstraints gbcSpace = new GridBagConstraints();
+        gbcSpace.gridx = 0;
+        gbcSpace.gridy = GridBagConstraints.RELATIVE; // Start at the current row and move down
+        gbcSpace.gridwidth = 2; // Span across both columns
+        gbcSpace.weighty = 1.0; // Allow empty component to expand vertically
+        addProductPanel.add(Box.createVerticalStrut(0), gbcSpace); // Adjust height as needed
+
+        // Set preferred size for the panel
+        addProductPanel.setPreferredSize(new Dimension(400, 200)); // Adjust size as needed
+
+        // Create a JFrame to hold the panel
+        JFrame frame = new JFrame("Add Product");
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.getContentPane().add(addProductPanel);
+        frame.pack(); // Pack components within the frame
+        frame.setVisible(true);
+
+       JButton btnAdd = new JButton("Add");
+btnAdd.addActionListener(new ActionListener() {
+    @Override
+    public void actionPerformed(ActionEvent e) {    
+        // Get the selected order ID from tblSales1
+        int selectedRow = tblSales1.getSelectedRow();
+        if (selectedRow != -1) {
+            String orderId = tblSales1.getValueAt(selectedRow, 0).toString();
+
+            // Get the selected product name and retrieve its ID
+            String selectedProductName = cmbProductName.getSelectedItem().toString();
+            int productId = getProductId(selectedProductName);
+
+            // Get the quantity, discount, and unit price values
+            int quantity = Integer.parseInt(txtQuantity.getText());
+            double discount = Double.parseDouble(txtDiscount.getText());
+            double unitPrice = Double.parseDouble(txtUnitPrice.getText());
+
+            // Insert the data into the orderdetail table
+            insertOrderDetail(orderId, productId, quantity, discount, unitPrice);
+        }
+    }
+});
+
+// Set preferred size for the "Add" button
+btnAdd.setPreferredSize(new Dimension(100, 40)); // Adjust size as needed
+
+// Add ActionListener for the "Add" button in the JPanel
+addProductPanel.add(btnAdd, gbcLeft); // Add the "Add" button to the JPanel with left alignment
+ // Add the "Add" button to the JPanel with right alignment
+    }
+    // Method to retrieve the product ID based on the product name
+    private int getProductId(String productName) {
+        int productId = -1; // Default value if product ID is not found
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/northwind", "root", "");
+            PreparedStatement pstmt = conn.prepareStatement("SELECT productId FROM product WHERE productName = ?");
+            pstmt.setString(1, productName);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                productId = rs.getInt("productId");
+            }
+            rs.close();
+            pstmt.close();
+            conn.close();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return productId;
+    }
+
+    // Method to insert data into the orderdetail table
+    private void insertOrderDetail(String orderId, int productId, int quantity, double discount, double unitPrice) {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/northwind", "root", "");
+            PreparedStatement pstmt = conn.prepareStatement("INSERT INTO orderdetail (orderId, productId, quantity, discount, unitPrice) VALUES (?, ?, ?, ?, ?)");
+            pstmt.setString(1, orderId);
+            pstmt.setInt(2, productId);
+            pstmt.setInt(3, quantity);
+            pstmt.setDouble(4, discount);
+            pstmt.setDouble(5, unitPrice);
+            pstmt.executeUpdate();
+            pstmt.close();
+            conn.close();
+            // Optionally, display a message or perform other actions after insertion
+            JOptionPane.showMessageDialog(null, "Order detail added successfully.");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+});
+
+
+
+JButton btnAddSalesOrder = new JButton("Add Sales Order");
+btnAddSalesOrder.addActionListener(new ActionListener() {
+    public void actionPerformed(ActionEvent e) {
+        // Create an instance of your JPanel
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(4, 2)); // Set layout for the panel
+
+        // Add JComboBox for selecting contact names
+        JComboBox<String> jComboBox1 = new JComboBox<>();
+
+        try {
+            // Establish database connection
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/northwind", "root", "");
+            Statement stmt = conn.createStatement();
+
+            // Query to fetch customer names
+            String query = "SELECT contactName, custId FROM customer";
+            ResultSet rs = stmt.executeQuery(query);
+
+            // Add customer names to JComboBox
+            while (rs.next()) {
+                jComboBox1.addItem(rs.getString("contactName"));
+            }
+
+            // Close resources
+            rs.close();
+            stmt.close();
+            conn.close();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        panel.add(new JLabel("Customer"));
+        panel.add(jComboBox1);
+
+        // Add JTextFields for "Customer Name", "Ship Country", and "Ship City"
+        JTextField txtShipCountry = new JTextField();
+        JTextField txtShipCity = new JTextField();
+
+        // Add labels for the JTextFields
+        JLabel lblShipCountry = new JLabel("Ship Country");
+        JLabel lblShipCity = new JLabel("Ship City");
+
+        // Add components to the panel
+        panel.add(lblShipCountry);
+        panel.add(txtShipCountry);
+        panel.add(lblShipCity);
+        panel.add(txtShipCity);
+
+  // Create an ActionListener for the "Add" button
+JButton btnAdd = new JButton("Add");
+btnAdd.addActionListener(new ActionListener() {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        String selectedContactName = (String) jComboBox1.getSelectedItem();
+        int selectedCustomerId = 0; // Default value if no customer is selected
+
+        // Get the customer ID for the selected contact name
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/northwind", "root", "");
+            PreparedStatement pstmt = conn.prepareStatement("SELECT custId FROM customer WHERE contactName = ?");
+            pstmt.setString(1, selectedContactName);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                selectedCustomerId = rs.getInt("custId");
+            }
+            rs.close();
+            pstmt.close();
+            conn.close();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        if (selectedContactName != null) {
+            // Insert data into salesorder table with current date and time
+            try {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/northwind", "root", "");
+                PreparedStatement pstmt = conn.prepareStatement("INSERT INTO salesorder (custId, employeeId, shipCity, shipCountry, shipperId, orderDate) VALUES (?, 1, ?, ?, 1, NOW())");
+                pstmt.setInt(1, selectedCustomerId);
+                pstmt.setString(2, txtShipCity.getText());
+                pstmt.setString(3, txtShipCountry.getText());
+                pstmt.executeUpdate();
+                pstmt.close();
+                conn.close();
+                // Optionally, display a message or perform other actions after insertion
+                JOptionPane.showMessageDialog(null, "Sales order added successfully.");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+});
+
+panel.add(new JLabel()); 
+panel.add(btnAdd);
+
+        // Create a new JFrame to hold the JPanel
+        JFrame frame = new JFrame("Add Sales Order");
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // Dispose the frame when closed
+        frame.getContentPane().add(panel);
+        frame.pack();
+        frame.setLocationRelativeTo(null); // Center the frame on the screen
+        frame.setVisible(true);
+    }
+});
+
 
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -441,6 +753,8 @@ private void updateTable2(String selectedOrderId) {
                                                         .addComponent(jLabel2)
                                                         .addComponent(jLabel3)
                                                         .addComponent(jLabel4)
+                                                                .addComponent(btnAddSalesOrder)
+                                                                
                                                         .addComponent(jLabel5))
                                                 .addGap(63, 63, 63)
                                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -457,6 +771,7 @@ private void updateTable2(String selectedOrderId) {
                                                                 .addComponent(jTextField5, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
                                                                 .addComponent(jTextField6, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
                                                                 .addComponent(jTextField7, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                         .addComponent(btnAddProduct)
                                                         .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 800, javax.swing.GroupLayout.PREFERRED_SIZE))
                                                 .addGap(0, 0, Short.MAX_VALUE)))
                                 .addContainerGap())
@@ -474,8 +789,10 @@ private void updateTable2(String selectedOrderId) {
                                                 .addComponent(jTextField6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                                 .addComponent(jTextField7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                  .addComponent(btnAddProduct)
                                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                                 .addComponent(jLabel6))
+                                           
                                         .addGroup(layout.createSequentialGroup()
                                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                                         .addComponent(jLabel2)
@@ -492,6 +809,8 @@ private void updateTable2(String selectedOrderId) {
                                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                                         .addComponent(jLabel5)
                                                         .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                        .addComponent(btnAddSalesOrder)
+                                                   
                                                 .addGap(18, 18, 18)
                                                 .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 275, javax.swing.GroupLayout.PREFERRED_SIZE)))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
