@@ -572,6 +572,7 @@ btnAdd.addActionListener(new ActionListener() {
 
             // Insert the data into the orderdetail table
             insertOrderDetail(orderId, productId, quantity, discount, unitPrice);
+            updateTable2(orderId);
         }
                 frame.setVisible(false); // Hide the JFrame
     }
@@ -720,6 +721,7 @@ btnAdd.addActionListener(new ActionListener() {
                 conn.close();
                 // Optionally, display a message or perform other actions after insertion
                 JOptionPane.showMessageDialog(null, "Sales order added successfully.");
+                updateTable1(selectedContactName); // Call the updateTable1 method
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
