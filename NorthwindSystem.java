@@ -12,6 +12,7 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -20,6 +21,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.awt.Font;
+import java.awt.Component;
+import javax.swing.JTable;
 import javax.swing.JButton; 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -88,6 +91,9 @@ tblSales1.addMouseListener(new MouseAdapter() {
         }
     }
 });
+
+        tblSales1.getColumnModel().getColumn(4).setCellRenderer(new ButtonCellRenderer());
+
 
         // Add ActionListener to JComboBox
         jComboBox1.addActionListener(new ActionListener() {
@@ -226,7 +232,6 @@ tblSales1.addMouseListener(new MouseAdapter() {
 }
 
 
-
 private int updateTable1(String selectedContactName) {
     DefaultTableModel tableModel = (DefaultTableModel) tblSales1.getModel();
     tableModel.setRowCount(0); 
@@ -236,6 +241,9 @@ private int updateTable1(String selectedContactName) {
         pst1 = conn.prepareStatement(strSQL);
         pst1.setString(1, selectedContactName);
         ResultSet resultSet = pst1.executeQuery();
+                
+        // Set the custom cell renderer for the "DELETE" column
+        tblSales1.getColumnModel().getColumn(4).setCellRenderer(new ButtonCellRenderer());
         while (resultSet.next()) {
             Vector<String> rowData = new Vector<>();
             rowData.add(resultSet.getString(1)); 
@@ -879,6 +887,21 @@ frame.setVisible(true);
             }
         });
     }
+
+   static class ButtonCellRenderer extends DefaultTableCellRenderer {
+        private final JButton button;
+
+        public ButtonCellRenderer() {
+            button = new JButton("DELETE");
+            button.setFocusPainted(false);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            return button;
+        }
+    }
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JComboBox<String> jComboBox1;
