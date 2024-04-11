@@ -92,7 +92,23 @@ tblSales1.addMouseListener(new MouseAdapter() {
     }
 });
 
+// Assuming this is inside a class that extends JFrame or JPanel
+tblSales2.addMouseListener(new MouseAdapter() {
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        int row = tblSales2.rowAtPoint(e.getPoint());
+        int col = tblSales2.columnAtPoint(e.getPoint());
+        if (row >= 0 && col >= 0) {
+            Object value = tblSales2.getValueAt(row, col);
+            if (value != null && value.toString().equals("DELETE")) {
+                JOptionPane.showMessageDialog(null, "Clicked on DELETE row");
+            }
+        }
+    }
+});
+
         tblSales1.getColumnModel().getColumn(4).setCellRenderer(new ButtonCellRenderer());
+        tblSales2.getColumnModel().getColumn(7).setCellRenderer(new ButtonCellRenderer());
 
 
         // Add ActionListener to JComboBox
@@ -345,6 +361,9 @@ private void updateTable2(String selectedOrderId) {
         pst1.setString(1, selectedOrderId);
         ResultSet resultSet = pst1.executeQuery();
         DecimalFormat df = new DecimalFormat("#,##0.00");
+                // Set the custom cell renderer for the "DELETE" column
+        tblSales2.getColumnModel().getColumn(7).setCellRenderer(new ButtonCellRenderer());
+
         while (resultSet.next()) {
             Vector<String> rowData = new Vector<>();
             rowData.add(resultSet.getString(1)); 
@@ -354,6 +373,7 @@ private void updateTable2(String selectedOrderId) {
             rowData.add(df.format(Double.parseDouble(resultSet.getString(5).replace(",", "")))); // Amount
             rowData.add(df.format(Double.parseDouble(resultSet.getString(6).replace(",", "")))); // Discount
             rowData.add(df.format(Double.parseDouble(resultSet.getString(7).replace(",", "")))); // Discounted Value
+            rowData.add("DELETE"); 
             tableModel.addRow(rowData);
 
          
@@ -440,7 +460,7 @@ private void updateTable2(String selectedOrderId) {
 
                 },
                 new String [] {
-                        "Product ID", "Unit Price", "Quantity", "% Discount", "Amount", "Discount", "Discounted Value"
+                        "Product ID", "Unit Price", "Quantity", "% Discount", "Amount", "Discount", "Discounted Value", "Action"
                 }
         ));
         jScrollPane1.getViewport().setBackground(new Color(33, 36, 106));
