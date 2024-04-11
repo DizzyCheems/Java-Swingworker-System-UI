@@ -50,6 +50,8 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
     private static String domain = "jdbc:mysql:///northwind";
     private static String user = "root";
     private static String pass = "";
+        private String selectedContactName; // Declare selectedContactName at the class level
+
     static int count = 0;
     double asd = 0;
     double sda = 0;
@@ -86,11 +88,24 @@ tblSales1.addMouseListener(new MouseAdapter() {
         if (row >= 0 && col >= 0) {
             Object value = tblSales1.getValueAt(row, col);
             if (value != null && value.toString().equals("DELETE")) {
-                JOptionPane.showMessageDialog(null, "Clicked on DELETE row");
+                int option = JOptionPane.showConfirmDialog(null, "Are you sure you want to delete this row?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                if (option == JOptionPane.YES_OPTION) {
+                    // Get the ID of the selected row
+                    String orderId = tblSales1.getValueAt(row, 0).toString(); // Assuming orderId is in the first column
+                    // Perform deletion based on the orderId
+                    deleteSalesOrder(orderId);
+                    // Update the table after deletion
+                    updateTable1(selectedContactName);
+                    JOptionPane.showMessageDialog(null, "Row deleted successfully.");
+                }
             }
         }
     }
 });
+
+
+
+
 
 // Assuming this is inside a class that extends JFrame or JPanel
 tblSales2.addMouseListener(new MouseAdapter() {
@@ -101,7 +116,8 @@ tblSales2.addMouseListener(new MouseAdapter() {
         if (row >= 0 && col >= 0) {
             Object value = tblSales2.getValueAt(row, col);
             if (value != null && value.toString().equals("DELETE")) {
-                JOptionPane.showMessageDialog(null, "Clicked on DELETE row");
+                String productId = tblSales2.getValueAt(row, 0).toString(); // Assuming the ID is in the first column
+                JOptionPane.showMessageDialog(null, "Clicked on DELETE for Product ID: " + productId);
             }
         }
     }
@@ -275,10 +291,6 @@ private int updateTable1(String selectedContactName) {
             //Insert Delete Button Here 
             rowCount++; // Increment the row count
         }
-
-        // Clear the displayed data in jTextField5, jTextField6, jTextField7, and tblSales2
-        clearDisplayedData();
-
     } catch (Exception e) {
         JOptionPane.showMessageDialog(null, e.toString());
     }
@@ -425,7 +437,22 @@ private void updateTable2(String selectedOrderId) {
     private void tblOrderDetailslColumnRenderer() {
         // Your existing tblOrderDetailslColumnRenderer method implementation
     }
-
+    
+private void deleteSalesOrder(String orderId) {
+    String deleteSQL = "DELETE FROM salesorder WHERE orderId = ?";
+    try {
+        PreparedStatement pstDelete = conn.prepareStatement(deleteSQL);
+        pstDelete.setString(1, orderId);
+        int rowsDeleted = pstDelete.executeUpdate();
+        if (rowsDeleted > 0) {
+            System.out.println("Sales order deleted successfully.");
+        } else {
+            System.out.println("Failed to delete sales order.");
+        }
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(null, e.toString());
+    }
+}
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
