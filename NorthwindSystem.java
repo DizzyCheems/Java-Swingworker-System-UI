@@ -205,7 +205,7 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
         protected void done() {
             // Optional: perform any additional UI updates or logic after the background task is done
         }
-    };
+    };  
     worker.execute();
 }
 
@@ -220,7 +220,7 @@ private int updateTable1(String selectedContactName) {
         pst1.setString(1, selectedContactName);
         ResultSet resultSet = pst1.executeQuery();
         while (resultSet.next()) {
-            Vector<String> rowData = new Vector<>();
+            Vector<Object> rowData = new Vector<>(); // Changed to Vector<Object>
             rowData.add(resultSet.getString(1)); 
            
             String orderDate = resultSet.getString(4);
@@ -228,8 +228,22 @@ private int updateTable1(String selectedContactName) {
             rowData.add(formattedDate); 
             rowData.add(resultSet.getString(14)); 
             rowData.add(resultSet.getString(11)); 
+
+            JButton deleteButton = new JButton("Delete"); // Create a new button
+            deleteButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // Handle delete button action here
+                    int selectedRow = tblSales1.getSelectedRow();
+                    if (selectedRow != -1) {
+                        tableModel.removeRow(selectedRow);
+                        // Add logic to delete corresponding record from database
+                    }
+                }
+            });
+            rowData.add("Delete"); // Add a string representation of the button
+            
             tableModel.addRow(rowData);
-            //Insert Delete Button Here 
             rowCount++; // Increment the row count
         }
 
@@ -241,6 +255,7 @@ private int updateTable1(String selectedContactName) {
     }
     return rowCount; 
 }
+
 
 private void clearDisplayedData() {
     jTextField5.setText("");
