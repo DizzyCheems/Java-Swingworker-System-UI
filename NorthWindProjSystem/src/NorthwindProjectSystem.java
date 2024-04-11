@@ -33,6 +33,8 @@ import javax.swing.Box;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 //<!--BUILT BY Justine Favia-->
 public class NorthwindProjectSystem extends javax.swing.JFrame {
 
@@ -72,6 +74,20 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
                 }
             }
         });
+// Assuming this is inside a class that extends JFrame or JPanel
+tblSales1.addMouseListener(new MouseAdapter() {
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        int row = tblSales1.rowAtPoint(e.getPoint());
+        int col = tblSales1.columnAtPoint(e.getPoint());
+        if (row >= 0 && col >= 0) {
+            Object value = tblSales1.getValueAt(row, col);
+            if (value != null && value.toString().equals("DELETE")) {
+                JOptionPane.showMessageDialog(null, "Clicked on DELETE row");
+            }
+        }
+    }
+});
 
         // Add ActionListener to JComboBox
         jComboBox1.addActionListener(new ActionListener() {
@@ -210,6 +226,7 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
 }
 
 
+
 private int updateTable1(String selectedContactName) {
     DefaultTableModel tableModel = (DefaultTableModel) tblSales1.getModel();
     tableModel.setRowCount(0); 
@@ -220,7 +237,7 @@ private int updateTable1(String selectedContactName) {
         pst1.setString(1, selectedContactName);
         ResultSet resultSet = pst1.executeQuery();
         while (resultSet.next()) {
-            Vector<Object> rowData = new Vector<>(); // Changed to Vector<Object>
+            Vector<String> rowData = new Vector<>();
             rowData.add(resultSet.getString(1)); 
            
             String orderDate = resultSet.getString(4);
@@ -228,22 +245,10 @@ private int updateTable1(String selectedContactName) {
             rowData.add(formattedDate); 
             rowData.add(resultSet.getString(14)); 
             rowData.add(resultSet.getString(11)); 
-
-            JButton deleteButton = new JButton("Delete"); // Create a new button
-            deleteButton.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    // Handle delete button action here
-                    int selectedRow = tblSales1.getSelectedRow();
-                    if (selectedRow != -1) {
-                        tableModel.removeRow(selectedRow);
-                        // Add logic to delete corresponding record from database
-                    }
-                }
-            });
-            rowData.add("Delete"); // Add a string representation of the button
+            rowData.add("DELETE"); 
             
             tableModel.addRow(rowData);
+            //Insert Delete Button Here 
             rowCount++; // Increment the row count
         }
 
@@ -255,7 +260,6 @@ private int updateTable1(String selectedContactName) {
     }
     return rowCount; 
 }
-
 
 private void clearDisplayedData() {
     jTextField5.setText("");
