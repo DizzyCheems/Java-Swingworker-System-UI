@@ -50,8 +50,6 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
     private static String domain = "jdbc:mysql:///northwind";
     private static String user = "root";
     private static String pass = "";
-        private String selectedContactName; // Declare selectedContactName at the class level
-
     static int count = 0;
     double asd = 0;
     double sda = 0;
@@ -66,6 +64,28 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
         setTableBorderColor(Color.BLUE);
         setDarkMode();
 
+
+        // Assuming this is inside a class that extends JFrame or JPanel
+        tblSales2.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = tblSales2.rowAtPoint(e.getPoint());
+                int col = tblSales2.columnAtPoint(e.getPoint());
+                if (row >= 0 && col >= 0) {
+                    Object value = tblSales2.getValueAt(row, col);
+                    if (value != null && value.toString().equals("DELETE")) {
+                        String productId = tblSales2.getValueAt(row, 0).toString(); // Assuming the ID is in the first column
+                        JOptionPane.showMessageDialog(null, "Clicked on DELETE for Product ID: " + productId);
+                    }
+                }
+            }
+        });
+
+        tblSales2.getColumnModel().getColumn(7).setCellRenderer(new ButtonCellRenderer());
+
+
+
+
         // Add ListSelectionListener to tblSales1
         tblSales1.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
@@ -79,53 +99,6 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
                 }
             }
         });
-// Assuming this is inside a class that extends JFrame or JPanel
-tblSales1.addMouseListener(new MouseAdapter() {
-    @Override
-    public void mouseClicked(MouseEvent e) {
-        int row = tblSales1.rowAtPoint(e.getPoint());
-        int col = tblSales1.columnAtPoint(e.getPoint());
-        if (row >= 0 && col >= 0) {
-            Object value = tblSales1.getValueAt(row, col);
-            if (value != null && value.toString().equals("DELETE")) {
-                int option = JOptionPane.showConfirmDialog(null, "Are you sure you want to delete this row?", "Confirmation", JOptionPane.YES_NO_OPTION);
-                if (option == JOptionPane.YES_OPTION) {
-                    // Get the ID of the selected row
-                    String orderId = tblSales1.getValueAt(row, 0).toString(); // Assuming orderId is in the first column
-                    // Perform deletion based on the orderId
-                    deleteSalesOrder(orderId);
-                    // Update the table after deletion
-                    updateTable1(selectedContactName);
-                    JOptionPane.showMessageDialog(null, "Row deleted successfully.");
-                }
-            }
-        }
-    }
-});
-
-
-
-
-
-// Assuming this is inside a class that extends JFrame or JPanel
-tblSales2.addMouseListener(new MouseAdapter() {
-    @Override
-    public void mouseClicked(MouseEvent e) {
-        int row = tblSales2.rowAtPoint(e.getPoint());
-        int col = tblSales2.columnAtPoint(e.getPoint());
-        if (row >= 0 && col >= 0) {
-            Object value = tblSales2.getValueAt(row, col);
-            if (value != null && value.toString().equals("DELETE")) {
-                String productId = tblSales2.getValueAt(row, 0).toString(); // Assuming the ID is in the first column
-                JOptionPane.showMessageDialog(null, "Clicked on DELETE for Product ID: " + productId);
-            }
-        }
-    }
-});
-
-        tblSales1.getColumnModel().getColumn(4).setCellRenderer(new ButtonCellRenderer());
-        tblSales2.getColumnModel().getColumn(7).setCellRenderer(new ButtonCellRenderer());
-
 
         // Add ActionListener to JComboBox
         jComboBox1.addActionListener(new ActionListener() {
@@ -259,43 +232,37 @@ tblSales2.addMouseListener(new MouseAdapter() {
         protected void done() {
             // Optional: perform any additional UI updates or logic after the background task is done
         }
-    };  
+    };
     worker.execute();
 }
 
 
 private int updateTable1(String selectedContactName) {
     DefaultTableModel tableModel = (DefaultTableModel) tblSales1.getModel();
-    tableModel.setRowCount(0); 
+    tableModel.setRowCount(0); // Clear the existing table data
     int rowCount = 0;
-    String strSQL = "SELECT * FROM salesorder WHERE custId IN (SELECT custId FROM customer WHERE contactName = ?)";
+    String strSQL = "SELECT productId, productName, unitPrice FROM product";
     try {
         pst1 = conn.prepareStatement(strSQL);
-        pst1.setString(1, selectedContactName);
         ResultSet resultSet = pst1.executeQuery();
-                
-        // Set the custom cell renderer for the "DELETE" column
-        tblSales1.getColumnModel().getColumn(4).setCellRenderer(new ButtonCellRenderer());
         while (resultSet.next()) {
             Vector<String> rowData = new Vector<>();
-            rowData.add(resultSet.getString(1)); 
-           
-            String orderDate = resultSet.getString(4);
-            String formattedDate = formatDate(orderDate); 
-            rowData.add(formattedDate); 
-            rowData.add(resultSet.getString(14)); 
-            rowData.add(resultSet.getString(11)); 
-            rowData.add("DELETE"); 
-            
+            rowData.add(resultSet.getString("productId"));
+            rowData.add(resultSet.getString("productName"));
+            rowData.add(resultSet.getString("unitPrice"));
             tableModel.addRow(rowData);
-            //Insert Delete Button Here 
             rowCount++; // Increment the row count
         }
+
+        // Clear the displayed data in jTextField5, jTextField6, jTextField7, and tblSales2
+        clearDisplayedData();
+
     } catch (Exception e) {
         JOptionPane.showMessageDialog(null, e.toString());
     }
-    return rowCount; 
+    return rowCount;
 }
+
 
 private void clearDisplayedData() {
     jTextField5.setText("");
@@ -350,7 +317,7 @@ private void updateTextfields(String selectedContactName) {
         // Your existing formatWithCommas method implementation
     }
 
-    private boolean updatingTable2 = false;
+       private boolean updatingTable2 = false;
 private void updateTable2(String selectedOrderId) {
     DefaultTableModel tableModel = (DefaultTableModel) tblSales2.getModel();
     tableModel.setRowCount(0); 
@@ -437,22 +404,7 @@ private void updateTable2(String selectedOrderId) {
     private void tblOrderDetailslColumnRenderer() {
         // Your existing tblOrderDetailslColumnRenderer method implementation
     }
-    
-private void deleteSalesOrder(String orderId) {
-    String deleteSQL = "DELETE FROM salesorder WHERE orderId = ?";
-    try {
-        PreparedStatement pstDelete = conn.prepareStatement(deleteSQL);
-        pstDelete.setString(1, orderId);
-        int rowsDeleted = pstDelete.executeUpdate();
-        if (rowsDeleted > 0) {
-            System.out.println("Sales order deleted successfully.");
-        } else {
-            System.out.println("Failed to delete sales order.");
-        }
-    } catch (Exception e) {
-        JOptionPane.showMessageDialog(null, e.toString());
-    }
-}
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -511,7 +463,7 @@ private void deleteSalesOrder(String orderId) {
 
                 },
                 new String [] {
-                        "OrderID", "Order Date", "Ship Country", "Ship City", "Action"
+                        "ProductID", "Name", "Unit Price"
                 }
         ));
          jScrollPane2.getViewport().setBackground(new Color(33, 36, 106));
