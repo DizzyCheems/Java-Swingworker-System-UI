@@ -170,8 +170,7 @@ tblSales2.addMouseListener(new MouseAdapter() {
             JOptionPane.showMessageDialog(null, "connection error");
         }
     }
-
- public void loadStats() {
+public void loadStats() {
     SwingWorker<Void, Vector<String>> worker = new SwingWorker<>() {
         @Override
         protected Void doInBackground() {
@@ -221,6 +220,17 @@ tblSales2.addMouseListener(new MouseAdapter() {
                     }
                 }
             }
+
+            // Check if there are rows in tblSales1
+            int rowCount = tblSales1.getRowCount();
+            if (rowCount > 0) {
+                // Select the last row by default
+                tblSales1.getSelectionModel().setSelectionInterval(rowCount - 1, rowCount - 1);
+                // Get the order ID of the selected row
+                String selectedOrderId = tblSales1.getValueAt(rowCount - 1, 0).toString();
+                // Update tblSales2 with the related order details
+                updateTable2(selectedOrderId);
+            }
         }
 
         @Override
@@ -230,6 +240,7 @@ tblSales2.addMouseListener(new MouseAdapter() {
     };
     worker.execute();
 }
+
 
 
 private int updateTable1(String selectedContactName) {
@@ -244,15 +255,26 @@ private int updateTable1(String selectedContactName) {
         while (resultSet.next()) {
             Vector<String> rowData = new Vector<>();
             rowData.add(resultSet.getString(1)); 
-           
+            
             String orderDate = resultSet.getString(4);
             String formattedDate = formatDate(orderDate); 
             rowData.add(formattedDate); 
             rowData.add(resultSet.getString(14)); 
             rowData.add(resultSet.getString(11)); 
             tableModel.addRow(rowData);
-            //Insert Delete Button Here 
             rowCount++; // Increment the row count
+        }
+
+        // Scroll to the last row in tblSales1
+        int lastRow = tblSales1.getRowCount() - 1;
+        if (lastRow >= 0) {
+            tblSales1.getSelectionModel().setSelectionInterval(lastRow, lastRow);
+            tblSales1.scrollRectToVisible(tblSales1.getCellRect(lastRow, 0, true));
+
+            // Get the order ID of the last selected row
+            String selectedOrderId = tblSales1.getValueAt(lastRow, 0).toString();
+            // Update tblSales2 with the related order details
+            updateTable2(selectedOrderId);
         }
 
         // Clear the displayed data in jTextField5, jTextField6, jTextField7, and tblSales2
@@ -263,6 +285,8 @@ private int updateTable1(String selectedContactName) {
     }
     return rowCount; 
 }
+
+
 
 private void clearDisplayedData() {
     jTextField5.setText("");
