@@ -88,7 +88,7 @@ tblSales2.addMouseListener(new MouseAdapter() {
             Object value = tblSales2.getValueAt(row, col);
             if (value != null && value.toString().equals("DELETE")) {
                 String productId = tblSales2.getValueAt(row, 0).toString(); // Assuming the ID is in the first column
-                JOptionPane.showMessageDialog(null, "Clicked on DELETE for Product ID: " + productId);
+                JOptionPane.showMessageDialog(null, "Clicked on DELETE for OrderDetail ID: " + productId);
             }
         }
     }
@@ -230,6 +230,8 @@ public void loadStats() {
                 String selectedOrderId = tblSales1.getValueAt(rowCount - 1, 0).toString();
                 // Update tblSales2 with the related order details
                 updateTable2(selectedOrderId);
+                // Disable row selection for tblSales1
+                tblSales1.setEnabled(false);
             }
         }
 
@@ -341,7 +343,7 @@ private void updateTextfields(String selectedContactName) {
         // Your existing formatWithCommas method implementation
     }
 
-   private boolean updatingTable2 = false;
+private boolean updatingTable2 = false;
 private void updateTable2(String selectedOrderId) {
     DefaultTableModel tableModel = (DefaultTableModel) tblSales2.getModel();
     tableModel.setRowCount(0); 
@@ -349,7 +351,7 @@ private void updateTable2(String selectedOrderId) {
     double sumDiscount = 0.0; 
     double totalmarkdown = 0.0; 
     int orderDetailCount = 0;
-    String strSQL = "SELECT od.productId, " +
+    String strSQL = "SELECT od.orderDetailId, " + // Fetch orderDetailId instead of productId
             "ROUND(p.unitPrice, 2), " +
             "od.quantity, " +
             "ROUND(od.discount, 2), " +
@@ -364,41 +366,29 @@ private void updateTable2(String selectedOrderId) {
         pst1.setString(1, selectedOrderId);
         ResultSet resultSet = pst1.executeQuery();
         DecimalFormat df = new DecimalFormat("#,##0.00");
-                // Set the custom cell renderer for the "DELETE" column
-        tblSales2.getColumnModel().getColumn(7).setCellRenderer(new ButtonCellRenderer());
 
         while (resultSet.next()) {
             Vector<String> rowData = new Vector<>();
-            rowData.add(resultSet.getString(1)); 
-            rowData.add(df.format(Double.parseDouble(resultSet.getString(2)))); 
-            rowData.add(resultSet.getString(3)); 
-            rowData.add(resultSet.getString(4)); 
-            rowData.add(df.format(Double.parseDouble(resultSet.getString(5).replace(",", "")))); // Amount
-            rowData.add(df.format(Double.parseDouble(resultSet.getString(6).replace(",", "")))); // Discount
-            rowData.add(df.format(Double.parseDouble(resultSet.getString(7).replace(",", "")))); // Discounted Value
+            rowData.add(resultSet.getString(1)); // orderDetailId
+            rowData.add(df.format(Double.parseDouble(resultSet.getString(2))));
+            rowData.add(resultSet.getString(3));
+            rowData.add(resultSet.getString(4));
+            rowData.add(df.format(Double.parseDouble(resultSet.getString(5).replace(",", ""))));
+            rowData.add(df.format(Double.parseDouble(resultSet.getString(6).replace(",", ""))));
+            rowData.add(df.format(Double.parseDouble(resultSet.getString(7).replace(",", ""))));
             rowData.add("DELETE"); 
             tableModel.addRow(rowData);
 
-         
             orderDetailCount++;
-
             sumAmount += Double.parseDouble(resultSet.getString(5).replace(",", ""));
-
-        
             sumDiscount += Double.parseDouble(resultSet.getString(6).replace(",", ""));
-
-    
             totalmarkdown += Double.parseDouble(resultSet.getString(7).replace(",", ""));
         }
 
         jTextField5.setText(df.format(sumAmount));
-
         jTextField6.setText(df.format(sumDiscount));
-
         jTextField7.setText(df.format(totalmarkdown));
-
         jLabel6.setText("There are " + orderDetailCount + " product order records for orderId " + selectedOrderId);
-
 
         for (int i = 0; i < tblSales2.getColumnCount(); i++) {
             tblSales2.getColumnModel().getColumn(i).setPreferredWidth(150); 
@@ -407,6 +397,7 @@ private void updateTable2(String selectedOrderId) {
         JOptionPane.showMessageDialog(null, e.toString());
     }
 }
+
 
 
 
