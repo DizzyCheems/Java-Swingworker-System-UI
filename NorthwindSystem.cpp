@@ -77,24 +77,24 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
                 }
             }
         });
+
 // Assuming this is inside a class that extends JFrame or JPanel
-tblSales1.addMouseListener(new MouseAdapter() {
+tblSales2.addMouseListener(new MouseAdapter() {
     @Override
     public void mouseClicked(MouseEvent e) {
-        int row = tblSales1.rowAtPoint(e.getPoint());
-        int col = tblSales1.columnAtPoint(e.getPoint());
+        int row = tblSales2.rowAtPoint(e.getPoint());
+        int col = tblSales2.columnAtPoint(e.getPoint());
         if (row >= 0 && col >= 0) {
-            Object value = tblSales1.getValueAt(row, col);
+            Object value = tblSales2.getValueAt(row, col);
             if (value != null && value.toString().equals("DELETE")) {
-                JOptionPane.showMessageDialog(null, "Clicked on DELETE row");
+                String productId = tblSales2.getValueAt(row, 0).toString(); // Assuming the ID is in the first column
+                JOptionPane.showMessageDialog(null, "Clicked on DELETE for Product ID: " + productId);
             }
         }
     }
 });
 
-        tblSales1.getColumnModel().getColumn(4).setCellRenderer(new ButtonCellRenderer());
-
-
+        tblSales2.getColumnModel().getColumn(7).setCellRenderer(new ButtonCellRenderer());
         // Add ActionListener to JComboBox
         jComboBox1.addActionListener(new ActionListener() {
             @Override
@@ -227,7 +227,7 @@ tblSales1.addMouseListener(new MouseAdapter() {
         protected void done() {
             // Optional: perform any additional UI updates or logic after the background task is done
         }
-    };  
+    };
     worker.execute();
 }
 
@@ -241,9 +241,6 @@ private int updateTable1(String selectedContactName) {
         pst1 = conn.prepareStatement(strSQL);
         pst1.setString(1, selectedContactName);
         ResultSet resultSet = pst1.executeQuery();
-                
-        // Set the custom cell renderer for the "DELETE" column
-        tblSales1.getColumnModel().getColumn(4).setCellRenderer(new ButtonCellRenderer());
         while (resultSet.next()) {
             Vector<String> rowData = new Vector<>();
             rowData.add(resultSet.getString(1)); 
@@ -253,8 +250,6 @@ private int updateTable1(String selectedContactName) {
             rowData.add(formattedDate); 
             rowData.add(resultSet.getString(14)); 
             rowData.add(resultSet.getString(11)); 
-            rowData.add("DELETE"); 
-            
             tableModel.addRow(rowData);
             //Insert Delete Button Here 
             rowCount++; // Increment the row count
@@ -322,7 +317,7 @@ private void updateTextfields(String selectedContactName) {
         // Your existing formatWithCommas method implementation
     }
 
-    private boolean updatingTable2 = false;
+   private boolean updatingTable2 = false;
 private void updateTable2(String selectedOrderId) {
     DefaultTableModel tableModel = (DefaultTableModel) tblSales2.getModel();
     tableModel.setRowCount(0); 
@@ -345,6 +340,9 @@ private void updateTable2(String selectedOrderId) {
         pst1.setString(1, selectedOrderId);
         ResultSet resultSet = pst1.executeQuery();
         DecimalFormat df = new DecimalFormat("#,##0.00");
+                // Set the custom cell renderer for the "DELETE" column
+        tblSales2.getColumnModel().getColumn(7).setCellRenderer(new ButtonCellRenderer());
+
         while (resultSet.next()) {
             Vector<String> rowData = new Vector<>();
             rowData.add(resultSet.getString(1)); 
@@ -354,6 +352,7 @@ private void updateTable2(String selectedOrderId) {
             rowData.add(df.format(Double.parseDouble(resultSet.getString(5).replace(",", "")))); // Amount
             rowData.add(df.format(Double.parseDouble(resultSet.getString(6).replace(",", "")))); // Discount
             rowData.add(df.format(Double.parseDouble(resultSet.getString(7).replace(",", "")))); // Discounted Value
+            rowData.add("DELETE"); 
             tableModel.addRow(rowData);
 
          
@@ -384,6 +383,8 @@ private void updateTable2(String selectedOrderId) {
         JOptionPane.showMessageDialog(null, e.toString());
     }
 }
+
+
 
 
     private String getProductName(String productId) {
@@ -440,7 +441,7 @@ private void updateTable2(String selectedOrderId) {
 
                 },
                 new String [] {
-                        "Product ID", "Unit Price", "Quantity", "% Discount", "Amount", "Discount", "Discounted Value"
+                        "Product ID", "Unit Price", "Quantity", "% Discount", "Amount", "Discount", "Discounted Value", "Action"
                 }
         ));
         jScrollPane1.getViewport().setBackground(new Color(33, 36, 106));
@@ -464,7 +465,7 @@ private void updateTable2(String selectedOrderId) {
 
                 },
                 new String [] {
-                        "OrderID", "Order Date", "Ship Country", "Ship City", "Action"
+                        "OrderID", "Order Date", "Ship Country", "Ship City"
                 }
         ));
          jScrollPane2.getViewport().setBackground(new Color(33, 36, 106));
@@ -888,6 +889,7 @@ frame.setVisible(true);
         });
     }
 
+
    static class ButtonCellRenderer extends DefaultTableCellRenderer {
         private final JButton button;
 
@@ -901,7 +903,6 @@ frame.setVisible(true);
             return button;
         }
     }
-
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JComboBox<String> jComboBox1;
