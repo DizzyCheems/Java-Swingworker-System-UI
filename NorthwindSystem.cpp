@@ -88,7 +88,7 @@ tblSales2.addMouseListener(new MouseAdapter() {
             Object value = tblSales2.getValueAt(row, col);
             if (value != null && value.toString().equals("DELETE")) {
                 String productId = tblSales2.getValueAt(row, 0).toString(); // Assuming the ID is in the first column
-                JOptionPane.showMessageDialog(null, "Clicked on DELETE for OrderDetail ID: " + productId);
+                JOptionPane.showMessageDialog(null, "Clicked on DELETE for Product ID: " + productId);
             }
         }
     }
@@ -170,7 +170,8 @@ tblSales2.addMouseListener(new MouseAdapter() {
             JOptionPane.showMessageDialog(null, "connection error");
         }
     }
-public void loadStats() {
+
+ public void loadStats() {
     SwingWorker<Void, Vector<String>> worker = new SwingWorker<>() {
         @Override
         protected Void doInBackground() {
@@ -220,19 +221,6 @@ public void loadStats() {
                     }
                 }
             }
-
-            // Check if there are rows in tblSales1
-            int rowCount = tblSales1.getRowCount();
-            if (rowCount > 0) {
-                // Select the last row by default
-                tblSales1.getSelectionModel().setSelectionInterval(rowCount - 1, rowCount - 1);
-                // Get the order ID of the selected row
-                String selectedOrderId = tblSales1.getValueAt(rowCount - 1, 0).toString();
-                // Update tblSales2 with the related order details
-                updateTable2(selectedOrderId);
-                // Disable row selection for tblSales1
-                tblSales1.setEnabled(false);
-            }
         }
 
         @Override
@@ -243,7 +231,16 @@ public void loadStats() {
     worker.execute();
 }
 
-
+private void handleRowClick(int rowIndex) {
+    // Check if the rowIndex is valid
+    if (rowIndex >= 0 && rowIndex < tblSales1.getRowCount()) {
+        // Get the data from the selected row
+        String orderId = tblSales1.getValueAt(rowIndex, 0).toString(); // Assuming orderId is in the first column
+        String orderDate = tblSales1.getValueAt(rowIndex, 1).toString(); // Assuming orderDate is in the second column
+        // Perform any action with the selected data
+        System.out.println("Clicked row: " + orderId + ", " + orderDate);
+    }
+}
 
 private int updateTable1(String selectedContactName) {
     DefaultTableModel tableModel = (DefaultTableModel) tblSales1.getModel();
@@ -257,7 +254,7 @@ private int updateTable1(String selectedContactName) {
         while (resultSet.next()) {
             Vector<String> rowData = new Vector<>();
             rowData.add(resultSet.getString(1)); 
-            
+           
             String orderDate = resultSet.getString(4);
             String formattedDate = formatDate(orderDate); 
             rowData.add(formattedDate); 
@@ -267,27 +264,21 @@ private int updateTable1(String selectedContactName) {
             rowCount++; // Increment the row count
         }
 
-        // Scroll to the last row in tblSales1
-        int lastRow = tblSales1.getRowCount() - 1;
-        if (lastRow >= 0) {
-            tblSales1.getSelectionModel().setSelectionInterval(lastRow, lastRow);
-            tblSales1.scrollRectToVisible(tblSales1.getCellRect(lastRow, 0, true));
-
-            // Get the order ID of the last selected row
-            String selectedOrderId = tblSales1.getValueAt(lastRow, 0).toString();
-            // Update tblSales2 with the related order details
-            updateTable2(selectedOrderId);
-        }
-
         // Clear the displayed data in jTextField5, jTextField6, jTextField7, and tblSales2
         clearDisplayedData();
+
+        // Automatically click the first row element
+        if (tblSales1.getRowCount() > 0) {
+            tblSales1.setRowSelectionInterval(0, 0); // Select the first row
+            // Perform click event (assuming you have a method for handling row clicks)
+            handleRowClick(tblSales1.getSelectedRow());
+        }
 
     } catch (Exception e) {
         JOptionPane.showMessageDialog(null, e.toString());
     }
     return rowCount; 
 }
-
 
 
 private void clearDisplayedData() {
@@ -343,7 +334,7 @@ private void updateTextfields(String selectedContactName) {
         // Your existing formatWithCommas method implementation
     }
 
-private boolean updatingTable2 = false;
+   private boolean updatingTable2 = false;
 private void updateTable2(String selectedOrderId) {
     DefaultTableModel tableModel = (DefaultTableModel) tblSales2.getModel();
     tableModel.setRowCount(0); 
@@ -351,7 +342,7 @@ private void updateTable2(String selectedOrderId) {
     double sumDiscount = 0.0; 
     double totalmarkdown = 0.0; 
     int orderDetailCount = 0;
-    String strSQL = "SELECT od.orderDetailId, " + // Fetch orderDetailId instead of productId
+    String strSQL = "SELECT od.productId, " +
             "ROUND(p.unitPrice, 2), " +
             "od.quantity, " +
             "ROUND(od.discount, 2), " +
@@ -366,29 +357,41 @@ private void updateTable2(String selectedOrderId) {
         pst1.setString(1, selectedOrderId);
         ResultSet resultSet = pst1.executeQuery();
         DecimalFormat df = new DecimalFormat("#,##0.00");
+                // Set the custom cell renderer for the "DELETE" column
+        tblSales2.getColumnModel().getColumn(7).setCellRenderer(new ButtonCellRenderer());
 
         while (resultSet.next()) {
             Vector<String> rowData = new Vector<>();
-            rowData.add(resultSet.getString(1)); // orderDetailId
-            rowData.add(df.format(Double.parseDouble(resultSet.getString(2))));
-            rowData.add(resultSet.getString(3));
-            rowData.add(resultSet.getString(4));
-            rowData.add(df.format(Double.parseDouble(resultSet.getString(5).replace(",", ""))));
-            rowData.add(df.format(Double.parseDouble(resultSet.getString(6).replace(",", ""))));
-            rowData.add(df.format(Double.parseDouble(resultSet.getString(7).replace(",", ""))));
+            rowData.add(resultSet.getString(1)); 
+            rowData.add(df.format(Double.parseDouble(resultSet.getString(2)))); 
+            rowData.add(resultSet.getString(3)); 
+            rowData.add(resultSet.getString(4)); 
+            rowData.add(df.format(Double.parseDouble(resultSet.getString(5).replace(",", "")))); // Amount
+            rowData.add(df.format(Double.parseDouble(resultSet.getString(6).replace(",", "")))); // Discount
+            rowData.add(df.format(Double.parseDouble(resultSet.getString(7).replace(",", "")))); // Discounted Value
             rowData.add("DELETE"); 
             tableModel.addRow(rowData);
 
+         
             orderDetailCount++;
+
             sumAmount += Double.parseDouble(resultSet.getString(5).replace(",", ""));
+
+        
             sumDiscount += Double.parseDouble(resultSet.getString(6).replace(",", ""));
+
+    
             totalmarkdown += Double.parseDouble(resultSet.getString(7).replace(",", ""));
         }
 
         jTextField5.setText(df.format(sumAmount));
+
         jTextField6.setText(df.format(sumDiscount));
+
         jTextField7.setText(df.format(totalmarkdown));
+
         jLabel6.setText("There are " + orderDetailCount + " product order records for orderId " + selectedOrderId);
+
 
         for (int i = 0; i < tblSales2.getColumnCount(); i++) {
             tblSales2.getColumnModel().getColumn(i).setPreferredWidth(150); 
@@ -397,7 +400,6 @@ private void updateTable2(String selectedOrderId) {
         JOptionPane.showMessageDialog(null, e.toString());
     }
 }
-
 
 
 
