@@ -88,7 +88,7 @@ tblSales2.addMouseListener(new MouseAdapter() {
             Object value = tblSales2.getValueAt(row, col);
             if (value != null && value.toString().equals("DELETE")) {
                 String productId = tblSales2.getValueAt(row, 0).toString(); // Assuming the ID is in the first column
-                JOptionPane.showMessageDialog(null, "Clicked on DELETE for Product ID: " + productId);
+                JOptionPane.showMessageDialog(null, "Clicked on DELETE for OrderDetail ID: " + productId);
             }
         }
     }
@@ -246,7 +246,7 @@ private int updateTable1(String selectedContactName) {
     DefaultTableModel tableModel = (DefaultTableModel) tblSales1.getModel();
     tableModel.setRowCount(0); 
     int rowCount = 0;
-    String strSQL = "SELECT * FROM salesorder WHERE custId IN (SELECT custId FROM customer WHERE contactName = ?)";
+    String strSQL = "SELECT * FROM salesorder WHERE custId IN (SELECT custId FROM customer WHERE contactName = ?) ORDER BY orderDate DESC"; // Assuming orderDate is the column that determines the order
     try {
         pst1 = conn.prepareStatement(strSQL);
         pst1.setString(1, selectedContactName);
@@ -254,12 +254,29 @@ private int updateTable1(String selectedContactName) {
         while (resultSet.next()) {
             Vector<String> rowData = new Vector<>();
             rowData.add(resultSet.getString(1)); 
-           
+            
             String orderDate = resultSet.getString(4);
             String formattedDate = formatDate(orderDate); 
             rowData.add(formattedDate); 
-            rowData.add(resultSet.getString(14)); 
+                 
+            String requiredDate = resultSet.getString(5);
+            if (requiredDate != null) {
+                String formattedRequiredDate = formatDate(requiredDate); 
+                rowData.add(formattedRequiredDate); 
+            } else {
+                rowData.add(""); 
+            }
+             
+             
+                String shippingdate = resultSet.getString(6);
+            if (shippingdate != null) {
+                String formattedshippingDate = formatDate(shippingdate); 
+                rowData.add(formattedshippingDate); 
+            } else {
+                rowData.add(""); 
+            }
             rowData.add(resultSet.getString(11)); 
+            
             tableModel.addRow(rowData);
             rowCount++; // Increment the row count
         }
@@ -313,21 +330,32 @@ private void updateJLabel1(String selectedContactName) {
 
 
 private void updateTextfields(String selectedContactName) {
-    String strSQL = "SELECT custId, companyName, country FROM customer WHERE contactName = ?";
+    String strSQL = "SELECT orderId, orderDate, requiredDate FROM salesorder INNER JOIN customer ON salesorder.custId = customer.custId WHERE customer.contactName = ? ORDER BY orderId DESC";
+
     try {
         pst1 = conn.prepareStatement(strSQL);
         pst1.setString(1, selectedContactName);
         ResultSet resultSet = pst1.executeQuery();
         if (resultSet.next()) {
+            // Format date using SimpleDateFormat
+            SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy"); // Adjust the format based on your database date format
+
             // Update text fields based on the retrieved data
-            jTextField2.setText(resultSet.getString("custId"));
-            jTextField3.setText(resultSet.getString("companyName"));
-            jTextField4.setText(resultSet.getString("country"));
+            jTextField2.setText(resultSet.getString("orderId"));
+            jTextField3.setText(dateFormat.format(resultSet.getTimestamp("orderDate")));
+            jTextField4.setText(dateFormat.format(resultSet.getTimestamp("requiredDate")));
+        } else {
+            // Clear text fields if no data is found
+            jTextField2.setText("");
+            jTextField3.setText("");
+            jTextField4.setText("");
         }
     } catch (Exception e) {
         JOptionPane.showMessageDialog(null, e.toString());
     }
 }
+
+
 
 
     private String formatWithCommas(double value) {
@@ -463,11 +491,11 @@ private void updateTable2(String selectedOrderId) {
         ));
         jScrollPane1.getViewport().setBackground(new Color(33, 36, 106));
         jScrollPane1.setViewportView(tblSales2);
-        jLabel2.setText("Customer ID");
+        jLabel2.setText("Order ID");
 
-        jLabel3.setText("Company Name");
+        jLabel3.setText("Order Date");
 
-        jLabel4.setText("Country");
+        jLabel4.setText("Date Required");
 
         jLabel5.setText("Contact name");
 
@@ -482,7 +510,7 @@ private void updateTable2(String selectedOrderId) {
 
                 },
                 new String [] {
-                        "OrderID", "Order Date", "Ship Country", "Ship City"
+                        "OrderID", "Order Date", "Required Date", "Shipping Date"
                 }
         ));
          jScrollPane2.getViewport().setBackground(new Color(33, 36, 106));
