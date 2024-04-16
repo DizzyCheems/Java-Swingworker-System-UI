@@ -38,6 +38,8 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.sql.SQLException;
+
 //<!--BUILT BY Justine Favia-->
 public class NorthwindProjectSystem extends javax.swing.JFrame {
 
@@ -50,6 +52,7 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
     private static String domain = "jdbc:mysql:///northwind";
     private static String user = "root";
     private static String pass = "";
+    private String selectedOrderId;
     static int count = 0;
     double asd = 0;
     double sda = 0;
@@ -78,6 +81,7 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
             }
         });
 
+
 // Assuming this is inside a class that extends JFrame or JPanel
 tblSales2.addMouseListener(new MouseAdapter() {
     @Override
@@ -87,8 +91,14 @@ tblSales2.addMouseListener(new MouseAdapter() {
         if (row >= 0 && col >= 0) {
             Object value = tblSales2.getValueAt(row, col);
             if (value != null && value.toString().equals("DELETE")) {
-                String productId = tblSales2.getValueAt(row, 0).toString(); // Assuming the ID is in the first column
-                JOptionPane.showMessageDialog(null, "Clicked on DELETE for OrderDetail ID: " + productId);
+                String orderDetailId = tblSales2.getValueAt(row, 0).toString(); // Assuming the ID is in the first column
+                int confirmDialog = JOptionPane.showConfirmDialog(null, "Are you sure you want to delete OrderDetail ID: " + orderDetailId + "?", "Confirm Deletion", JOptionPane.YES_NO_OPTION);
+                if (confirmDialog == JOptionPane.YES_OPTION) {
+                    // Call a method to delete the order detail based on the ID
+                    deleteOrderDetail(orderDetailId);
+                    // Update the table after deletion
+                    updateTable2(selectedOrderId);
+                }
             }
         }
     }
@@ -361,6 +371,42 @@ private void updateTextfields(String selectedContactName) {
         // Your existing formatWithCommas method implementation
     }
 
+private void deleteOrderDetail(String orderDetailId) {
+    String deleteSQL = "DELETE FROM orderdetail WHERE orderDetailId = ?";
+    try {
+        PreparedStatement pstDelete = conn.prepareStatement(deleteSQL);
+        pstDelete.setString(1, orderDetailId);
+        int rowsAffected = pstDelete.executeUpdate();
+        if (rowsAffected > 0) {
+            JOptionPane.showMessageDialog(null, "OrderDetail ID: " + orderDetailId + " deleted successfully.");
+            // Refresh the table after deletion
+            updateTable2(selectedOrderId); // Assuming selectedOrderId is accessible
+
+            // Check if tblSales2 has rows before trying to select the first row
+            if (tblSales2.getRowCount() > 0) {
+                tblSales2.setRowSelectionInterval(0, 0); // Select the first row in tblSales2
+            } else {
+                // Handle the case when tblSales2 is empty after deletion
+                // You can display a message or perform any other action here
+                System.out.println("tblSales2 is empty after deletion.");
+            }
+
+            // Automatically click the first row element in tblSales1
+            if (tblSales1.getRowCount() > 0) {
+                tblSales1.setRowSelectionInterval(0, 0); // Select the first row in tblSales1
+                handleRowClick(tblSales1.getSelectedRow());
+            } else {
+                // Handle the case when tblSales1 is empty after deletion
+                // You can display a message or perform any other action here
+                System.out.println("tblSales1 is empty after deletion.");
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "Failed to delete OrderDetail ID: " + orderDetailId);
+        }
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(null, "Error deleting OrderDetail: " + e.getMessage());
+    }
+}
 private void updateTable2(String selectedOrderId) {
     DefaultTableModel tableModel = (DefaultTableModel) tblSales2.getModel();
     tableModel.setRowCount(0); 
