@@ -55,7 +55,7 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
     double sda = 0;
     double das = 0;
     double result;
-
+    private String selectedContactName;
     public NorthwindProjectSystem() {
         initComponents();
         connect();
@@ -64,19 +64,6 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
         setTableBorderColor(Color.BLUE);
         setDarkMode();
 
-        // Add ListSelectionListener to tblSales1
-        tblSales1.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) {
-                    int selectedRow = tblSales1.getSelectedRow();
-                    if (selectedRow != -1) {
-                        String selectedOrderId = tblSales1.getValueAt(selectedRow, 0).toString();
-                        updateTable2(selectedOrderId);
-                    }
-                }
-            }
-        });
 
 // Assuming this is inside a class that extends JFrame or JPanel
 tblSales2.addMouseListener(new MouseAdapter() {
@@ -701,119 +688,60 @@ addProductPanel.add(btnAdd, gbcLeft); // Add the "Add" button to the JPanel with
     }
 });
 
-
-
 JButton btnAddSalesOrder = new JButton("Add Sales Order");
 btnAddSalesOrder.addActionListener(new ActionListener() {
     public void actionPerformed(ActionEvent e) {
-        // Create an instance of your JPanel
-        JPanel panel = new JPanel();
-        panel.setLayout(new GridLayout(4, 2)); // Set layout for the panel
-
-        // Add JComboBox for selecting contact names
-        JComboBox<String> jComboBox1 = new JComboBox<>();
-
         try {
-            // Establish database connection
+
+            // Load the JDBC driver and establish a connection
             Class.forName("com.mysql.cj.jdbc.Driver");
             Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/northwind", "root", "");
-            Statement stmt = conn.createStatement();
 
-            // Query to fetch customer names
-            String query = "SELECT contactName, custId FROM customer";
-            ResultSet rs = stmt.executeQuery(query);
+            // Get the selected contactName from the JComboBox
+            String selectedContactName = (String) jComboBox1.getSelectedItem();
 
-            // Add customer names to JComboBox
-            while (rs.next()) {
-                jComboBox1.addItem(rs.getString("contactName"));
-            }
+            // Prepare the SQL statement to get the custId based on the selected contactName
+            PreparedStatement pstmtCustId = conn.prepareStatement("SELECT custId FROM customer WHERE contactName = ?");
+            pstmtCustId.setString(1, selectedContactName);
+            ResultSet rsCustId = pstmtCustId.executeQuery();
 
-            // Close resources
-            rs.close();
-            stmt.close();
-            conn.close();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+            // Check if a custId is retrieved
+            if (rsCustId.next()) {
+                int custId = rsCustId.getInt("custId");
 
-        panel.add(new JLabel("Customer"));
-        panel.add(jComboBox1);
+                // Prepare the SQL statement to insert a new sales order
+                PreparedStatement pstmt = conn.prepareStatement("INSERT INTO salesorder (custId, orderDate, requiredDate, shippedDate, shipperId, employeeId) VALUES (?, NOW(), DATE_ADD(NOW(), INTERVAL 3 DAY), DATE_ADD(NOW(), INTERVAL 5 DAY), 1, 1)");
 
-        // Add JTextFields for "Customer Name", "Ship Country", and "Ship City"
-        JTextField txtShipCountry = new JTextField();
-        JTextField txtShipCity = new JTextField();
+                // Set the parameters for the prepared statement
+                pstmt.setInt(1, custId);
 
-        // Add labels for the JTextFields
-        JLabel lblShipCountry = new JLabel("Ship Country");
-        JLabel lblShipCity = new JLabel("Ship City");
-
-        // Add components to the panel
-        panel.add(lblShipCountry);
-        panel.add(txtShipCountry);
-        panel.add(lblShipCity);
-        panel.add(txtShipCity);
-
-  // Create an ActionListener for the "Add" button
-JButton btnAdd = new JButton("Add");
-final JFrame frame = new JFrame("Add Sales Order");
-
-btnAdd.addActionListener(new ActionListener() {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        String selectedContactName = (String) jComboBox1.getSelectedItem();
-        int selectedCustomerId = 0; // Default value if no customer is selected
-
-        // Get the customer ID for the selected contact name
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/northwind", "root", "");
-            PreparedStatement pstmt = conn.prepareStatement("SELECT custId FROM customer WHERE contactName = ?");
-            pstmt.setString(1, selectedContactName);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                selectedCustomerId = rs.getInt("custId");
-            }
-            rs.close();
-            pstmt.close();
-            conn.close();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-
-        if (selectedContactName != null) {
-            // Insert data into salesorder table with current date and time
-            try {
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/northwind", "root", "");
-                PreparedStatement pstmt = conn.prepareStatement("INSERT INTO salesorder (custId, employeeId, shipCity, shipCountry, shipperId, orderDate) VALUES (?, 1, ?, ?, 1, NOW())");
-                pstmt.setInt(1, selectedCustomerId);
-                pstmt.setString(2, txtShipCity.getText());
-                pstmt.setString(3, txtShipCountry.getText());
+                // Execute the SQL statement to insert the sales order
                 pstmt.executeUpdate();
+
+                // Close the prepared statement and connection
                 pstmt.close();
                 conn.close();
+
                 // Optionally, display a message or perform other actions after insertion
                 JOptionPane.showMessageDialog(null, "Sales order added successfully.");
-                updateTable1(selectedContactName); // Call the updateTable1 method
-            } catch (Exception ex) {
-                ex.printStackTrace();
+                updateTable1(selectedContactName); // Call the updateTable1 method to refresh the table
+        
+                // Update the table with the new data
+                // updateTable1(selectedContactName); // Call the updateTable1 method
+            } else {
+                JOptionPane.showMessageDialog(null, "Error: Customer ID not found for the selected contact name.", "Error", JOptionPane.ERROR_MESSAGE);
             }
+
+            // Close the result set and prepared statement for custId retrieval
+            rsCustId.close();
+            pstmtCustId.close();
+        } catch (Exception ex) {
+            // Handle any exceptions that occur during database operations
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error adding sales order: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
-        frame.setVisible(false); // Hide the JFrame
     }
 });
-
-panel.add(new JLabel());
-panel.add(btnAdd);
-
-frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // Dispose the frame when closed
-frame.getContentPane().add(panel);
-frame.pack();
-frame.setLocationRelativeTo(null); // Center the frame on the screen
-frame.setVisible(true);
-    }
-});
-
 
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
