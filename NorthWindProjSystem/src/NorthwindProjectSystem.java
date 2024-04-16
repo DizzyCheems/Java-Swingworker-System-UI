@@ -55,7 +55,7 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
     double sda = 0;
     double das = 0;
     double result;
-    private String selectedContactName;
+
     public NorthwindProjectSystem() {
         initComponents();
         connect();
@@ -64,6 +64,19 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
         setTableBorderColor(Color.BLUE);
         setDarkMode();
 
+        // Add ListSelectionListener to tblSales1
+        tblSales1.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (!e.getValueIsAdjusting()) {
+                    int selectedRow = tblSales1.getSelectedRow();
+                    if (selectedRow != -1) {
+                        String selectedOrderId = tblSales1.getValueAt(selectedRow, 0).toString();
+                        updateTable2(selectedOrderId);
+                    }
+                }
+            }
+        });
 
 // Assuming this is inside a class that extends JFrame or JPanel
 tblSales2.addMouseListener(new MouseAdapter() {
@@ -274,7 +287,6 @@ private int updateTable1(String selectedContactName) {
         // Automatically click the first row element
         if (tblSales1.getRowCount() > 0) {
             tblSales1.setRowSelectionInterval(0, 0); // Select the first row
-            // Perform click event (assuming you have a method for handling row clicks)
             handleRowClick(tblSales1.getSelectedRow());
         }
 
@@ -349,15 +361,14 @@ private void updateTextfields(String selectedContactName) {
         // Your existing formatWithCommas method implementation
     }
 
-   private boolean updatingTable2 = false;
 private void updateTable2(String selectedOrderId) {
     DefaultTableModel tableModel = (DefaultTableModel) tblSales2.getModel();
     tableModel.setRowCount(0); 
     double sumAmount = 0.0; 
     double sumDiscount = 0.0; 
-    double totalmarkdown = 0.0; 
+    double totalMarkdown = 0.0; 
     int orderDetailCount = 0;
-    String strSQL = "SELECT od.productId, " +
+    String strSQL = "SELECT od.orderDetailId, " +
             "ROUND(p.unitPrice, 2), " +
             "od.quantity, " +
             "ROUND(od.discount, 2), " +
@@ -372,41 +383,32 @@ private void updateTable2(String selectedOrderId) {
         pst1.setString(1, selectedOrderId);
         ResultSet resultSet = pst1.executeQuery();
         DecimalFormat df = new DecimalFormat("#,##0.00");
-                // Set the custom cell renderer for the "DELETE" column
+
+        // Set the custom cell renderer for the "DELETE" column
         tblSales2.getColumnModel().getColumn(7).setCellRenderer(new ButtonCellRenderer());
 
         while (resultSet.next()) {
             Vector<String> rowData = new Vector<>();
-            rowData.add(resultSet.getString(1)); 
-            rowData.add(df.format(Double.parseDouble(resultSet.getString(2)))); 
-            rowData.add(resultSet.getString(3)); 
-            rowData.add(resultSet.getString(4)); 
+            rowData.add(resultSet.getString(1)); // orderDetailId
+            rowData.add(df.format(Double.parseDouble(resultSet.getString(2)))); // unitPrice
+            rowData.add(resultSet.getString(3)); // quantity
+            rowData.add(resultSet.getString(4)); // discount
             rowData.add(df.format(Double.parseDouble(resultSet.getString(5).replace(",", "")))); // Amount
             rowData.add(df.format(Double.parseDouble(resultSet.getString(6).replace(",", "")))); // Discount
             rowData.add(df.format(Double.parseDouble(resultSet.getString(7).replace(",", "")))); // Discounted Value
             rowData.add("DELETE"); 
             tableModel.addRow(rowData);
 
-         
             orderDetailCount++;
-
             sumAmount += Double.parseDouble(resultSet.getString(5).replace(",", ""));
-
-        
             sumDiscount += Double.parseDouble(resultSet.getString(6).replace(",", ""));
-
-    
-            totalmarkdown += Double.parseDouble(resultSet.getString(7).replace(",", ""));
+            totalMarkdown += Double.parseDouble(resultSet.getString(7).replace(",", ""));
         }
 
         jTextField5.setText(df.format(sumAmount));
-
         jTextField6.setText(df.format(sumDiscount));
-
-        jTextField7.setText(df.format(totalmarkdown));
-
+        jTextField7.setText(df.format(totalMarkdown));
         jLabel6.setText("There are " + orderDetailCount + " product order records for orderId " + selectedOrderId);
-
 
         for (int i = 0; i < tblSales2.getColumnCount(); i++) {
             tblSales2.getColumnModel().getColumn(i).setPreferredWidth(150); 
@@ -415,7 +417,6 @@ private void updateTable2(String selectedOrderId) {
         JOptionPane.showMessageDialog(null, e.toString());
     }
 }
-
 
 
 
@@ -473,7 +474,7 @@ private void updateTable2(String selectedOrderId) {
 
                 },
                 new String [] {
-                        "Product ID", "Unit Price", "Quantity", "% Discount", "Amount", "Discount", "Discounted Value", "Action"
+                        "Order Detail ID", "Unit Price", "Quantity", "% Discount", "Amount", "Discount", "Discounted Value", "Action"
                 }
         ));
         jScrollPane1.getViewport().setBackground(new Color(33, 36, 106));
@@ -548,7 +549,7 @@ btnAddProduct.addActionListener(new ActionListener() {
             Class.forName("com.mysql.cj.jdbc.Driver"); // Use the new MySQL driver class
             Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/northwind", "root", "");
             Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT productName, unitPrice FROM product");
+            ResultSet rs = stmt.executeQuery("SELECT productName, unitPrice FROM product ORDER BY productName");
             while (rs.next()) {
                 String productName = rs.getString("productName");
                 double unitPrice = rs.getDouble("unitPrice");
@@ -688,6 +689,7 @@ addProductPanel.add(btnAdd, gbcLeft); // Add the "Add" button to the JPanel with
     }
 });
 
+
 JButton btnAddSalesOrder = new JButton("Add Sales Order");
 btnAddSalesOrder.addActionListener(new ActionListener() {
     public void actionPerformed(ActionEvent e) {
@@ -742,6 +744,8 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
         }
     }
 });
+
+
 
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
