@@ -94,7 +94,7 @@ tblSales2.addMouseListener(new MouseAdapter() {
             Object value = tblSales2.getValueAt(row, col);
             if (value != null && value.toString().equals("DELETE")) {
                 String orderDetailId = tblSales2.getValueAt(row, 0).toString(); // Assuming the ID is in the first column
-                int confirmDialog = JOptionPane.showConfirmDialog(null, "Are you sure you want to delete OrderDetail ID: " + orderDetailId + "?", "Confirm Deletion", JOptionPane.YES_NO_OPTION);
+                int confirmDialog = JOptionPane.showConfirmDialog(null, "Are you sure you want to Remove this Product: " + orderDetailId + "?", "Confirm Deletion", JOptionPane.YES_NO_OPTION);
                 if (confirmDialog == JOptionPane.YES_OPTION) {
                     deleteOrderDetail(orderDetailId);
                 }
@@ -138,6 +138,7 @@ tblSales2.addMouseListener(new MouseAdapter() {
         jLabel5.setForeground(darkForeground);
         jLabel6.setForeground(darkForeground);
         jLabel8.setForeground(darkForeground);
+        jLabel12.setForeground(darkForeground);
         jTextField2.setForeground(darkForeground);
         jTextField3.setForeground(darkForeground);
         jTextField4.setForeground(darkForeground);
@@ -145,6 +146,7 @@ tblSales2.addMouseListener(new MouseAdapter() {
         jTextField6.setForeground(darkForeground);
         jTextField7.setForeground(darkForeground);
         jTextField8.setForeground(darkForeground);
+        jTextField12.setForeground(darkForeground);
         jComboBox1.setForeground(darkForeground);
         tblSales1.setForeground(darkForeground);
         tblSales2.setForeground(darkForeground);
@@ -156,6 +158,7 @@ tblSales2.addMouseListener(new MouseAdapter() {
         jLabel5.setBackground(darkBackground);
         jLabel6.setBackground(darkBackground);
         jLabel8.setBackground(darkBackground);
+        jLabel12.setBackground(darkBackground);
 
         jTextField2.setBackground(darkBackground);
         jTextField3.setBackground(darkBackground);
@@ -164,6 +167,7 @@ tblSales2.addMouseListener(new MouseAdapter() {
         jTextField6.setBackground(darkBackground);
         jTextField7.setBackground(darkBackground);
         jTextField8.setBackground(darkBackground);
+        jTextField12.setBackground(darkBackground);
         jComboBox1.setBackground(darkBackground);
 
         tblSales1.setBackground(grey);
@@ -255,10 +259,15 @@ private void handleRowClick(int rowIndex) {
         // Get the data from the selected row
         String orderId = tblSales1.getValueAt(rowIndex, 0).toString(); // Assuming orderId is in the first column
         String orderDate = tblSales1.getValueAt(rowIndex, 1).toString(); // Assuming orderDate is in the second column
+        String shippingDate = tblSales1.getValueAt(rowIndex, 3).toString(); // Assuming Shipping Date is in the fifth column
         // Perform any action with the selected data
-        System.out.println("Clicked row: " + orderId + ", " + orderDate);
+        System.out.println("Clicked row: " + orderId + ", " + orderDate + ", Shipping Date: " + shippingDate);
+
+        // Set the Shipping Date value in jTextField12
+        jTextField12.setText(shippingDate);
     }
 }
+
 
 private int updateTable1(String selectedContactName) {
     DefaultTableModel tableModel = (DefaultTableModel) tblSales1.getModel();
@@ -478,11 +487,32 @@ private void updateTable2(String selectedOrderId) {
         for (int i = 0; i < tblSales2.getColumnCount(); i++) {
             tblSales2.getColumnModel().getColumn(i).setPreferredWidth(150); 
         }
+
+        // Add a table model listener to update JTextFields when table data changes
+        tableModel.addTableModelListener(e -> {
+            recalculateAndSetJTextFields(tableModel, df);
+        });
+
     } catch (Exception e) {
         JOptionPane.showMessageDialog(null, e.toString());
     }
 }
 
+private void recalculateAndSetJTextFields(DefaultTableModel tableModel, DecimalFormat df) {
+    double sumAmount = 0.0; 
+    double sumDiscount = 0.0; 
+    double totalMarkdown = 0.0; 
+
+    for (int row = 0; row < tableModel.getRowCount(); row++) {
+        sumAmount += Double.parseDouble(tableModel.getValueAt(row, 4).toString().replace(",", ""));
+        sumDiscount += Double.parseDouble(tableModel.getValueAt(row, 5).toString().replace(",", ""));
+        totalMarkdown += Double.parseDouble(tableModel.getValueAt(row, 6).toString().replace(",", ""));
+    }
+
+    jTextField5.setText(df.format(sumAmount));
+    jTextField6.setText(df.format(sumDiscount));
+    jTextField7.setText(df.format(totalMarkdown));
+}
 
 
     private String getProductName(String productId) {
@@ -521,6 +551,7 @@ private void updateTable2(String selectedOrderId) {
         jLabel4 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
         jLabel8 = new javax.swing.JLabel();
+        jLabel12 = new javax.swing.JLabel();
         jTextField2 = new javax.swing.JTextField();
         jTextField3 = new javax.swing.JTextField();
         jTextField4 = new javax.swing.JTextField();
@@ -533,6 +564,7 @@ private void updateTable2(String selectedOrderId) {
         jTextField5 = new javax.swing.JTextField();
         jTextField6 = new javax.swing.JTextField();
         jTextField7 = new javax.swing.JTextField();
+        jTextField12 = new javax.swing.JTextField();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -547,6 +579,8 @@ private void updateTable2(String selectedOrderId) {
         jScrollPane1.getViewport().setBackground(new Color(33, 36, 106));
         jScrollPane1.setViewportView(tblSales2);
         jLabel2.setText("Order ID");
+
+        jLabel12.setText("Shipping Date");
 
         jLabel3.setText("Order Date");
 
@@ -769,12 +803,10 @@ addProductPanel.add(btnAdd, gbcLeft); // Add the "Add" button to the JPanel with
     }
 });
 
-
 JButton btnAddSalesOrder = new JButton("Add Sales Order");
 btnAddSalesOrder.addActionListener(new ActionListener() {
     public void actionPerformed(ActionEvent e) {
         try {
-
             // Load the JDBC driver and establish a connection
             Class.forName("com.mysql.cj.jdbc.Driver");
             Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/northwind", "root", "");
@@ -792,17 +824,28 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
                 int custId = rsCustId.getInt("custId");
 
                 // Prepare the SQL statement to insert a new sales order
-                PreparedStatement pstmt = conn.prepareStatement("INSERT INTO salesorder (custId, orderDate, requiredDate, shippedDate, shipperId, employeeId) VALUES (?, NOW(), DATE_ADD(NOW(), INTERVAL 3 DAY), DATE_ADD(NOW(), INTERVAL 5 DAY), 1, 1)");
+                PreparedStatement pstmt = conn.prepareStatement("INSERT INTO salesorder (custId, orderDate, requiredDate, shippedDate, shipperId, employeeId) VALUES (?, NOW(), DATE_ADD(NOW(), INTERVAL 3 DAY), DATE_ADD(NOW(), INTERVAL 5 DAY), 1, 1)", Statement.RETURN_GENERATED_KEYS);
 
                 pstmt.setInt(1, custId);
 
                 pstmt.executeUpdate();
 
-                pstmt.close();
-                conn.close();
+                // Get the generated keys (including the orderId)
+                ResultSet generatedKeys = pstmt.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    int newOrderId = generatedKeys.getInt(1); // Get the newly created orderId
 
-                JOptionPane.showMessageDialog(null, "Sales order added successfully.");
-                updateTable1(selectedContactName); // Call the updateTable1 method to refresh the table        
+                    pstmt.close();
+                    conn.close();
+
+                    JOptionPane.showMessageDialog(null, "Sales order added successfully.");
+
+                    // Refresh the table
+                    updateTable1(selectedContactName); // Call the updateTable1 method to refresh the table
+
+                    // Switch to the next element in the JComboBox and then back to the current element
+                    switchAndReturnToCurrent(selectedContactName);
+                }
             } else {
                 JOptionPane.showMessageDialog(null, "Error: Customer ID not found for the selected contact name.", "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -814,7 +857,28 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
             JOptionPane.showMessageDialog(null, "Error adding sales order: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+
+    private void switchAndReturnToCurrent(String currentContactName) {
+        DefaultComboBoxModel<String> comboBoxModel = (DefaultComboBoxModel<String>) jComboBox1.getModel();
+        int currentIndex = comboBoxModel.getIndexOf(currentContactName);
+
+        // Switch to the next element in the JComboBox
+        int nextIndex = (currentIndex + 1) % comboBoxModel.getSize();
+        String nextContactName = comboBoxModel.getElementAt(nextIndex);
+        jComboBox1.setSelectedItem(nextContactName);
+
+        // Delay to simulate switching effect (you can adjust the delay time)
+        try {
+            Thread.sleep(1000); // Adjust the delay time as needed (in milliseconds)
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Switch back to the current element in the JComboBox
+        jComboBox1.setSelectedItem(currentContactName);
+    }
 });
+
 
 
 
@@ -833,6 +897,7 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
                                                         .addComponent(jLabel2)
                                                         .addComponent(jLabel3)
                                                         .addComponent(jLabel4)
+                                                        .addComponent(jLabel12)
                                                         .addComponent(btnAddSalesOrder)
                                                                 
                                                         .addComponent(jLabel5))
@@ -841,6 +906,8 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
                                                         .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
                                                         .addComponent(jTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
                                                         .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                        .addComponent(jTextField12, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                     
                                                         .addComponent(jComboBox1, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
                                 .addGap(18, 18, 18)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -878,7 +945,7 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
                                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                                         .addComponent(jLabel2)
                                                         .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                                .addGap(18, 18, 18)
+                                                .addGap(18, 18, 18)   
                                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                                         .addComponent(jLabel3)
                                                         .addComponent(jTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -887,13 +954,19 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
                                                         .addComponent(jLabel4)
                                                         .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                                                 .addGap(18, 18, 18)
-                                               
+                                                              
+                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                                        .addComponent(jLabel12)
+                                                        .addComponent(jTextField12, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                .addGap(18, 18, 18)
+                                           
                                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                                         .addComponent(jLabel5)
                                                         .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                                                         .addComponent(btnAddSalesOrder)
                                                    
                                                 .addGap(18, 18, 18)
+                                 
                                                 .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 275, javax.swing.GroupLayout.PREFERRED_SIZE)))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(jLabel1)
@@ -963,6 +1036,7 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel jLabel12;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTextField jTextField2;
@@ -972,6 +1046,7 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
     private javax.swing.JTextField jTextField6;
     private javax.swing.JTextField jTextField7;
     private javax.swing.JTextField jTextField8;
+    private javax.swing.JTextField jTextField12;
     private javax.swing.JTable tblSales1;
     private javax.swing.JTable tblSales2;
     // End of variables declaration//GEN-END:variables
