@@ -26,6 +26,7 @@ import javax.swing.JTable;
 import javax.swing.JButton; 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.ListSelectionModel;
 import javax.swing.JFrame;
 import java.awt.GridLayout;
 import javax.swing.JTextField;
@@ -53,6 +54,7 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
     private static String user = "root";
     private static String pass = "";
     private String selectedOrderId;
+    private String orderId;
     static int count = 0;
     double asd = 0;
     double sda = 0;
@@ -75,7 +77,7 @@ public class NorthwindProjectSystem extends javax.swing.JFrame {
                     int selectedRow = tblSales1.getSelectedRow();
                     if (selectedRow != -1) {
                         String selectedOrderId = tblSales1.getValueAt(selectedRow, 0).toString();
-                        updateTable2(selectedOrderId);
+
                     }
                 }
             }
@@ -94,10 +96,7 @@ tblSales2.addMouseListener(new MouseAdapter() {
                 String orderDetailId = tblSales2.getValueAt(row, 0).toString(); // Assuming the ID is in the first column
                 int confirmDialog = JOptionPane.showConfirmDialog(null, "Are you sure you want to delete OrderDetail ID: " + orderDetailId + "?", "Confirm Deletion", JOptionPane.YES_NO_OPTION);
                 if (confirmDialog == JOptionPane.YES_OPTION) {
-                    // Call a method to delete the order detail based on the ID
                     deleteOrderDetail(orderDetailId);
-                    // Update the table after deletion
-                    updateTable2(selectedOrderId);
                 }
             }
         }
@@ -138,12 +137,14 @@ tblSales2.addMouseListener(new MouseAdapter() {
         jLabel4.setForeground(darkForeground);
         jLabel5.setForeground(darkForeground);
         jLabel6.setForeground(darkForeground);
+        jLabel8.setForeground(darkForeground);
         jTextField2.setForeground(darkForeground);
         jTextField3.setForeground(darkForeground);
         jTextField4.setForeground(darkForeground);
         jTextField5.setForeground(darkForeground);
         jTextField6.setForeground(darkForeground);
         jTextField7.setForeground(darkForeground);
+        jTextField8.setForeground(darkForeground);
         jComboBox1.setForeground(darkForeground);
         tblSales1.setForeground(darkForeground);
         tblSales2.setForeground(darkForeground);
@@ -154,12 +155,15 @@ tblSales2.addMouseListener(new MouseAdapter() {
         jLabel4.setBackground(darkBackground);
         jLabel5.setBackground(darkBackground);
         jLabel6.setBackground(darkBackground);
+        jLabel8.setBackground(darkBackground);
+
         jTextField2.setBackground(darkBackground);
         jTextField3.setBackground(darkBackground);
         jTextField4.setBackground(darkBackground);
         jTextField5.setBackground(darkBackground);
         jTextField6.setBackground(darkBackground);
         jTextField7.setBackground(darkBackground);
+        jTextField8.setBackground(darkBackground);
         jComboBox1.setBackground(darkBackground);
 
         tblSales1.setBackground(grey);
@@ -182,6 +186,9 @@ tblSales2.addMouseListener(new MouseAdapter() {
     }
 
  public void loadStats() {
+        // Set the selection mode of tblSales1 to single selection
+    tblSales1.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
     SwingWorker<Void, Vector<String>> worker = new SwingWorker<>() {
         @Override
         protected Void doInBackground() {
@@ -240,6 +247,7 @@ tblSales2.addMouseListener(new MouseAdapter() {
     };
     worker.execute();
 }
+
 
 private void handleRowClick(int rowIndex) {
     // Check if the rowIndex is valid
@@ -311,6 +319,7 @@ private void clearDisplayedData() {
     jTextField5.setText("");
     jTextField6.setText("");
     jTextField7.setText("");
+    jTextField8.setText("");
     jLabel6.setText("...");
     DefaultTableModel tableModel = (DefaultTableModel) tblSales2.getModel();
     tableModel.setRowCount(0);
@@ -337,9 +346,8 @@ private void updateJLabel1(String selectedContactName) {
 }
 
 
-
 private void updateTextfields(String selectedContactName) {
-    String strSQL = "SELECT orderId, orderDate, requiredDate FROM salesorder INNER JOIN customer ON salesorder.custId = customer.custId WHERE customer.contactName = ? ORDER BY orderId DESC";
+    String strSQL = "SELECT orderId, orderDate, shippedDate, requiredDate FROM salesorder INNER JOIN customer ON salesorder.custId = customer.custId WHERE customer.contactName = ? ORDER BY orderId DESC";
 
     try {
         pst1 = conn.prepareStatement(strSQL);
@@ -353,11 +361,13 @@ private void updateTextfields(String selectedContactName) {
             jTextField2.setText(resultSet.getString("orderId"));
             jTextField3.setText(dateFormat.format(resultSet.getTimestamp("orderDate")));
             jTextField4.setText(dateFormat.format(resultSet.getTimestamp("requiredDate")));
+            jTextField8.setText(dateFormat.format(resultSet.getTimestamp("orderDate"))); // Set the shipping date in JTextField8
         } else {
             // Clear text fields if no data is found
             jTextField2.setText("");
             jTextField3.setText("");
             jTextField4.setText("");
+            jTextField8.setText("");
         }
     } catch (Exception e) {
         JOptionPane.showMessageDialog(null, e.toString());
@@ -378,17 +388,16 @@ private void deleteOrderDetail(String orderDetailId) {
         pstDelete.setString(1, orderDetailId);
         int rowsAffected = pstDelete.executeUpdate();
         if (rowsAffected > 0) {
-            JOptionPane.showMessageDialog(null, "OrderDetail ID: " + orderDetailId + " deleted successfully.");
             // Refresh the table after deletion
-            updateTable2(selectedOrderId); // Assuming selectedOrderId is accessible
-
+           
             // Check if tblSales2 has rows before trying to select the first row
             if (tblSales2.getRowCount() > 0) {
-                tblSales2.setRowSelectionInterval(0, 0); // Select the first row in tblSales2
-            } else {
-                // Handle the case when tblSales2 is empty after deletion
-                // You can display a message or perform any other action here
-                System.out.println("tblSales2 is empty after deletion.");
+                // Find the row index of the deleted order detail
+                int rowIndex = findRowIndex(tblSales2, orderDetailId);
+                if (rowIndex != -1) {
+                    DefaultTableModel model = (DefaultTableModel) tblSales2.getModel();
+                    model.removeRow(rowIndex); // Remove the row from tblSales2
+                }
             }
 
             // Automatically click the first row element in tblSales1
@@ -397,16 +406,26 @@ private void deleteOrderDetail(String orderDetailId) {
                 handleRowClick(tblSales1.getSelectedRow());
             } else {
                 // Handle the case when tblSales1 is empty after deletion
-                // You can display a message or perform any other action here
                 System.out.println("tblSales1 is empty after deletion.");
             }
         } else {
             JOptionPane.showMessageDialog(null, "Failed to delete OrderDetail ID: " + orderDetailId);
         }
+        pstDelete.close();
     } catch (SQLException e) {
         JOptionPane.showMessageDialog(null, "Error deleting OrderDetail: " + e.getMessage());
     }
 }
+
+private int findRowIndex(JTable table, String orderDetailId) {
+    for (int i = 0; i < table.getRowCount(); i++) {
+        if (table.getValueAt(i, 0).toString().equals(orderDetailId)) {
+            return i; // Found the row index
+        }
+    }
+    return -1; // Row not found
+}
+
 private void updateTable2(String selectedOrderId) {
     DefaultTableModel tableModel = (DefaultTableModel) tblSales2.getModel();
     tableModel.setRowCount(0); 
@@ -501,9 +520,11 @@ private void updateTable2(String selectedOrderId) {
         jLabel3 = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
+        jLabel8 = new javax.swing.JLabel();
         jTextField2 = new javax.swing.JTextField();
         jTextField3 = new javax.swing.JTextField();
         jTextField4 = new javax.swing.JTextField();
+        jTextField8 = new javax.swing.JTextField();
         jScrollPane2 = new javax.swing.JScrollPane();
         tblSales1 = new javax.swing.JTable();
         jComboBox1 = new javax.swing.JComboBox<>();
@@ -533,6 +554,8 @@ private void updateTable2(String selectedOrderId) {
 
         jLabel5.setText("Contact name");
 
+        jLabel8.setText("Shipping Date");
+
         jTextField2.setEditable(false);
 
         jTextField3.setEditable(false);
@@ -557,7 +580,6 @@ private void updateTable2(String selectedOrderId) {
     jTextField5.setFont(jTextField5.getFont().deriveFont(16f));
     jTextField6.setFont(jTextField6.getFont().deriveFont(16f));
     jTextField7.setFont(jTextField7.getFont().deriveFont(16f));
-
 
 
 JButton btnAddProduct = new JButton("Add Product");
@@ -587,6 +609,13 @@ btnAddProduct.addActionListener(new ActionListener() {
         JLabel lblDiscount = new JLabel("Discount");
         JLabel lblUnitPrice = new JLabel("Unit Price");
 
+        // Set font size for JLabels
+        Font labelFont = lblProduct.getFont();
+        lblProduct.setFont(new Font(labelFont.getName(), Font.PLAIN, 20)); // Example size: 20
+        lblQuantity.setFont(new Font(labelFont.getName(), Font.PLAIN, 20)); // Example size: 20
+        lblDiscount.setFont(new Font(labelFont.getName(), Font.PLAIN, 20)); // Example size: 20
+        lblUnitPrice.setFont(new Font(labelFont.getName(), Font.PLAIN, 20)); // Example size: 20
+
         // Fetch product names from the database
         JComboBox<String> cmbProductName = new JComboBox<>();
         HashMap<String, Double> productPrices = new HashMap<>(); // Use HashMap instead of Map
@@ -613,11 +642,15 @@ btnAddProduct.addActionListener(new ActionListener() {
         JTextField txtQuantity = new JTextField();
         JTextField txtDiscount = new JTextField();
         JTextField txtUnitPrice = new JTextField();
-
+        // Set font size for JTextFields
+        Font textFieldFont = txtQuantity.getFont();
+        txtQuantity.setFont(new Font(textFieldFont.getName(), Font.PLAIN, 20)); // Example size: 20
+        txtDiscount.setFont(new Font(textFieldFont.getName(), Font.PLAIN, 20)); // Example size: 20
+        txtUnitPrice.setFont(new Font(textFieldFont.getName(), Font.PLAIN, 20)); // Example size: 20
         // Set preferred size for text fields (adjust as needed)
-        txtQuantity.setPreferredSize(new Dimension(200, 25));
-        txtDiscount.setPreferredSize(new Dimension(200, 25));
-        txtUnitPrice.setPreferredSize(new Dimension(200, 25));
+        txtQuantity.setPreferredSize(new Dimension(200, 40)); // Adjust height as needed
+        txtDiscount.setPreferredSize(new Dimension(200, 40)); // Adjust height as needed
+        txtUnitPrice.setPreferredSize(new Dimension(200, 40)); // Adjust height as needed
 
         // Add ActionListener to update unit price when product is selected
         cmbProductName.addActionListener(new ActionListener() {
@@ -630,6 +663,8 @@ btnAddProduct.addActionListener(new ActionListener() {
                 }
             }
         });
+
+
 
         // Add components to the panel with GridBagConstraints
         addProductPanel.add(lblProduct, gbcLeft);
@@ -650,7 +685,7 @@ btnAddProduct.addActionListener(new ActionListener() {
         addProductPanel.add(Box.createVerticalStrut(0), gbcSpace); // Adjust height as needed
 
         // Set preferred size for the panel
-        addProductPanel.setPreferredSize(new Dimension(400, 200)); // Adjust size as needed
+        addProductPanel.setPreferredSize(new Dimension(400, 400)); // Adjust size as needed
 
         // Create a JFrame to hold the panel
         JFrame frame = new JFrame("Add Product");
@@ -659,7 +694,7 @@ btnAddProduct.addActionListener(new ActionListener() {
         frame.pack(); // Pack components within the frames
         frame.setVisible(true);
 
-       JButton btnAdd = new JButton("Add");
+ JButton btnAdd = new JButton("Add");
 btnAdd.addActionListener(new ActionListener() {
     @Override
     public void actionPerformed(ActionEvent e) {    
@@ -674,14 +709,15 @@ btnAdd.addActionListener(new ActionListener() {
 
             // Get the quantity, discount, and unit price values
             int quantity = Integer.parseInt(txtQuantity.getText());
-            double discount = Double.parseDouble(txtDiscount.getText());
+            double discountInput = Double.parseDouble(txtDiscount.getText());
+            double discount = Math.floor(discountInput) / 100.0; // Round down and convert to percentage (e.g., 3 becomes 0.03)
             double unitPrice = Double.parseDouble(txtUnitPrice.getText());
 
             // Insert the data into the orderdetail table
             insertOrderDetail(orderId, productId, quantity, discount, unitPrice);
             updateTable2(orderId);
         }
-                frame.setVisible(false); // Hide the JFrame
+        frame.setVisible(false); // Hide the JFrame
     }
 });
 
@@ -727,8 +763,6 @@ addProductPanel.add(btnAdd, gbcLeft); // Add the "Add" button to the JPanel with
             pstmt.executeUpdate();
             pstmt.close();
             conn.close();
-            // Optionally, display a message or perform other actions after insertion
-            JOptionPane.showMessageDialog(null, "Order detail added successfully.");
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -760,31 +794,22 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
                 // Prepare the SQL statement to insert a new sales order
                 PreparedStatement pstmt = conn.prepareStatement("INSERT INTO salesorder (custId, orderDate, requiredDate, shippedDate, shipperId, employeeId) VALUES (?, NOW(), DATE_ADD(NOW(), INTERVAL 3 DAY), DATE_ADD(NOW(), INTERVAL 5 DAY), 1, 1)");
 
-                // Set the parameters for the prepared statement
                 pstmt.setInt(1, custId);
 
-                // Execute the SQL statement to insert the sales order
                 pstmt.executeUpdate();
 
-                // Close the prepared statement and connection
                 pstmt.close();
                 conn.close();
 
-                // Optionally, display a message or perform other actions after insertion
                 JOptionPane.showMessageDialog(null, "Sales order added successfully.");
-                updateTable1(selectedContactName); // Call the updateTable1 method to refresh the table
-        
-                // Update the table with the new data
-                // updateTable1(selectedContactName); // Call the updateTable1 method
+                updateTable1(selectedContactName); // Call the updateTable1 method to refresh the table        
             } else {
                 JOptionPane.showMessageDialog(null, "Error: Customer ID not found for the selected contact name.", "Error", JOptionPane.ERROR_MESSAGE);
             }
 
-            // Close the result set and prepared statement for custId retrieval
             rsCustId.close();
             pstmtCustId.close();
         } catch (Exception ex) {
-            // Handle any exceptions that occur during database operations
             ex.printStackTrace();
             JOptionPane.showMessageDialog(null, "Error adding sales order: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -808,7 +833,7 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
                                                         .addComponent(jLabel2)
                                                         .addComponent(jLabel3)
                                                         .addComponent(jLabel4)
-                                                                .addComponent(btnAddSalesOrder)
+                                                        .addComponent(btnAddSalesOrder)
                                                                 
                                                         .addComponent(jLabel5))
                                                 .addGap(63, 63, 63)
@@ -826,6 +851,7 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
                                                                 .addComponent(jTextField5, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
                                                                 .addComponent(jTextField6, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
                                                                 .addComponent(jTextField7, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                       
                                                          .addComponent(btnAddProduct)
                                                         .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 800, javax.swing.GroupLayout.PREFERRED_SIZE))
                                                 .addGap(0, 0, Short.MAX_VALUE)))
@@ -861,6 +887,7 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
                                                         .addComponent(jLabel4)
                                                         .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                                                 .addGap(18, 18, 18)
+                                               
                                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                                         .addComponent(jLabel5)
                                                         .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -935,6 +962,7 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel8;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTextField jTextField2;
@@ -943,6 +971,7 @@ btnAddSalesOrder.addActionListener(new ActionListener() {
     private javax.swing.JTextField jTextField5;
     private javax.swing.JTextField jTextField6;
     private javax.swing.JTextField jTextField7;
+    private javax.swing.JTextField jTextField8;
     private javax.swing.JTable tblSales1;
     private javax.swing.JTable tblSales2;
     // End of variables declaration//GEN-END:variables
